@@ -84,7 +84,7 @@ class TestMemcachedStore < ActiveSupport::TestCase
   def test_cas_multi
     @cache.write('foo', 'bar')
     @cache.write('fud', 'biz')
-    assert(@cache.cas_multi('foo', 'fud') do |hash|
+    assert_equal true, (@cache.cas_multi('foo', 'fud') do |hash|
       assert_equal({ "foo" => "bar", "fud" => "biz" }, hash)
       { "foo" => "baz", "fud" => "buz" }
     end)
@@ -379,20 +379,20 @@ class TestMemcachedStore < ActiveSupport::TestCase
   def test_initialize_accepts_a_list_of_servers_in_options
     options = { servers: ["localhost:21211"] }
     cache = ActiveSupport::Cache.lookup_store(:memcached_store, options)
-    assert_equal 21211, cache.instance_variable_get(:@data).servers.first.port
+    assert_equal ["localhost:21211:8"], cache.instance_variable_get(:@data).servers
   end
 
   def test_multiple_servers
     options = { servers: ["localhost:21211", "localhost:11211"] }
     cache = ActiveSupport::Cache.lookup_store(:memcached_store, options)
-    assert_equal [21211, 11211], cache.instance_variable_get(:@data).servers.map(&:port)
+    assert_equal ["localhost:21211:8", "localhost:11211:8"], cache.instance_variable_get(:@data).servers
   end
 
   def test_namespace_without_servers
     options = { namespace: 'foo:' }
     cache = ActiveSupport::Cache.lookup_store(:memcached_store, options)
     client = cache.instance_variable_get(:@data)
-    assert_equal [11211], client.servers.map(&:port)
+    assert_equal ["127.0.0.1:11211:8"], client.servers
     assert_equal "", client.prefix_key, "should not send the namespace to the client"
     assert_equal "foo::key", cache.send(:namespaced_key, "key", cache.options)
   end
